@@ -1,0 +1,27 @@
+# 本机环境与编辑器配置
+/.idea/
+/.gradle/
+/.kotlin/
+/local.properties
+*.iml
+.DS_Store
+Thumbs.db
+
+# 构建缓存与安装包
+**/build/
+/dist/
+/artifacts/
+*.apk
+*.aab
+*.apks
+*.log
+*.zip
+
+# 私有签名配置与密钥
+/signing/*
+!/signing/signing.properties.example
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.key
