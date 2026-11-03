@@ -5,7 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
-/** One request per record; an uncertain result prevents any later submission. */
+
 internal suspend fun executeBatch(source:Source,action:String,targetKey:String,targets:List<String>,values:JSONObject):JSONObject {
     require(targets.size in 1..50 && targets.distinct().size==targets.size)
     require(targetKey in listOf("trade_no","biz_no","id"))

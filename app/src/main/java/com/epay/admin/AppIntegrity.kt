@@ -8,7 +8,7 @@ import android.os.Build
 import android.os.Debug
 import java.security.MessageDigest
 
-/** Checks current signers, not signing history: an old trusted signer is not enough. */
+
 internal object ReleaseIdentityPolicy {
     fun accepts(packageName: String, signers: List<ByteArray>, debuggable: Boolean, testOnly: Boolean, debugger: Boolean): Boolean =
         packageName == "com.epay.admin" && !debuggable && !testOnly && !debugger &&
@@ -57,7 +57,7 @@ internal object AppIntegrity {
         } catch (_: Exception) { MESSAGE }
     }
 
-    // Fail closed for release requests even if an entry point skips the Activity.
+
     fun requireTrusted() {
         if (BuildConfig.DEBUG) return
         val context = application ?: throw ApiFailure(MESSAGE, 403)

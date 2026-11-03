@@ -18,7 +18,7 @@ import androidx.compose.ui.semantics.stateDescription
 internal val refreshableRoutes = setOf("home", "orders", "merchants", "channels", "resource", "sessions", "order", "order-notifications", "stats", "tasks", "task-plugin", "task-history", "task-logs", "complaints", "complaint", "complaint-accounts")
 internal val listRoutes = setOf("orders", "merchants", "channels", "resource", "sessions")
 
-/** A nested-scroll gesture: only the unused downward scroll at the top refreshes. */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable internal fun RefreshContainer(
     isRefreshing: Boolean,

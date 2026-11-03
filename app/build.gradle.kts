@@ -5,7 +5,7 @@ plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id(
 val releaseCertificateSha256 = Properties().apply {
     rootProject.file("release-integrity.properties").inputStream().use { load(it) }
 }.getProperty("certificateSha256").also {
-    require(it.matches(Regex("[0-9a-f]{64}"))) { "Invalid public release certificate fingerprint" }
+    require(it.matches(Regex("[0-9a-f]{64}"))) { "正式签名证书指纹格式无效" }
 }
 val signingProperties = Properties().apply {
     rootProject.file("signing/signing.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
@@ -13,7 +13,7 @@ val signingProperties = Properties().apply {
 android {
     namespace = "com.epay.admin"
     compileSdk = 35
-    defaultConfig { applicationId = "com.epay.admin"; minSdk = 26; targetSdk = 35; versionCode = 31; versionName = "1.2.20"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; buildConfigField("String", "RELEASE_CERTIFICATE_SHA256", "\"$releaseCertificateSha256\"") }
+    defaultConfig { applicationId = "com.epay.admin"; minSdk = 26; targetSdk = 35; versionCode = 32; versionName = "1.2.30"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; buildConfigField("String", "RELEASE_CERTIFICATE_SHA256", "\"$releaseCertificateSha256\"") }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
@@ -34,13 +34,13 @@ android {
 }
 val verifyReleaseSigning by tasks.registering {
     doLast {
-        check(signingProperties.isNotEmpty()) { "Release signing is required; configure local signing/signing.properties" }
+        check(signingProperties.isNotEmpty()) { "请先配置本机 signing/signing.properties 正式签名" }
         val file = rootProject.file("signing/" + signingProperties.getProperty("storeFile"))
         val store = KeyStore.getInstance(file, signingProperties.getProperty("storePassword").toCharArray())
         val certificate = store.getCertificate(signingProperties.getProperty("keyAlias"))
-        check(certificate != null) { "Release signing certificate is missing" }
+        check(certificate != null) { "正式签名证书缺失" }
         val actual = MessageDigest.getInstance("SHA-256").digest(certificate.encoded).joinToString("") { "%02x".format(it) }
-        check(actual == releaseCertificateSha256) { "Release certificate does not match the trusted certificate; refusing to produce an unusable APK" }
+        check(actual == releaseCertificateSha256) { "签名证书与受信任指纹不一致，已停止生成安装文件" }
     }
 }
 tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(verifyReleaseSigning) }
@@ -48,7 +48,6 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui-tooling-preview")

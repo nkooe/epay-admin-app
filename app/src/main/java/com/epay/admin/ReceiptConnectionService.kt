@@ -24,7 +24,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 import java.io.IOException
 
-/** User-visible, opt-in foreground connection. Never starts secretly from a worker. */
+
 class ReceiptConnectionService : Service() {
     companion object {
         fun start(context: Context) { ContextCompat.startForegroundService(context,Intent(context,ReceiptConnectionService::class.java)) }
@@ -51,7 +51,7 @@ class ReceiptConnectionService : Service() {
         if (intent?.action == ReceiptNotificationCenter.STOP) {
             if (!stopping) {
                 stopping = true
-                ReceiptNotificationPrefs.setEnabled(this,false);ReceiptNotificationWork.cancel(this)
+                ReceiptNotificationPrefs.setEnabled(this,false)
                 connection?.cancel();status("关闭中")
                 scope.launch {
                     withTimeoutOrNull(5_000) {
@@ -93,7 +93,7 @@ class ReceiptConnectionService : Service() {
                     }
                 }
                 if (!rotated) throw IOException("收款连接提前结束")
-                // A normal server rotation reconnects immediately with the saved cursor.
+
                 retry = 1_000
                 continue
             } catch (e: CancellationException) { throw e }
@@ -102,7 +102,7 @@ class ReceiptConnectionService : Service() {
                     status("登录失效")
                     stopSelf();return
                 }
-                if (e.status == 403) { ReceiptNotificationPrefs.setEnabled(this,false);ReceiptNotificationWork.cancel(this);stopSelf();return }
+                if (e.status == 403) { ReceiptNotificationPrefs.setEnabled(this,false);stopSelf();return }
                 status("重连中")
             } catch (_: Exception) { status("重连中") }
             finally { if (wake.isHeld) wake.release() }

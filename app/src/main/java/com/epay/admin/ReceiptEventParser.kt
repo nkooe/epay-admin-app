@@ -3,7 +3,7 @@ package com.epay.admin
 import java.io.IOException
 import org.json.JSONObject
 
-/** Incremental, bounded SSE frames; comments and unknown event types are ignored. */
+
 internal class ReceiptEventParser(private val receive: (String, JSONObject) -> Unit) {
     private var event = "message"
     private val data = StringBuilder()

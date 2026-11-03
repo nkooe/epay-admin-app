@@ -3,7 +3,7 @@ package com.epay.admin
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Bounded history for the one receipt card. Cursor persistence remains independent. */
+
 internal class ReceiptInbox(saved: JSONObject = JSONObject()) {
     companion object { const val RETAINED = 50; const val VISIBLE = 6 }
     private val entries = mutableListOf<JSONObject>()

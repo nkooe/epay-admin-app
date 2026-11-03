@@ -231,8 +231,8 @@ private fun InputStream.readBytesLimited(limit:Int):ByteArray{
     val selected=channels.find{it.s("id")==channel}
     CompactDialog(onDismissRequest={if(!model.busy)dismiss()},title={Text(if(existing)"编辑投诉接口"else"新增投诉接口")},text={Column(Modifier.verticalScroll(rememberScrollState())){
         if(existing)ManagementLine("支付通道",row.s("channel_name","通道已删除"))else ChoiceField("支付通道",channel,obj().apply{channels.filter{it.optBoolean("bindable")&&!model.content.rows("accounts").any{account->account.s("channel")==it.s("id")}}.forEach{put(it.s("id"),(if(it.s("type")=="wxpay")"微信 · "else"支付宝 · ")+it.s("name")+"（"+it.s("id")+"）")}},!model.busy){channel=it;connection=""}
-        HintLine(if(row.s("credential_source")=="legacy")"此接口保留原有凭证配置。"else"自动复用通道配置，名称和支付方式自动识别；通道配置更新后同步生效。")
-        if(row.s("credential_source")!="legacy")selected?.s("config_message")?.takeIf{it.isNotBlank()}?.let{HintLine(it)}
+        HintLine("自动复用通道配置，名称和支付方式自动识别；通道配置更新后同步生效。")
+        selected?.s("config_message")?.takeIf{it.isNotBlank()}?.let{HintLine(it)}
         Row{
             TextButton(onClick={model.save("complaints/check",if(existing)obj("id" to row.s("id"))else obj("channel" to channel)){result->connection=result.s("message")}},enabled=!model.busy&&channel.isNotBlank()){Text("检测连接")}
             TextButton(onClick={dismiss();model.go("channel","通道密钥配置",obj("id" to channel))},enabled=!model.busy&&channel.isNotBlank()){Text("通道配置")}

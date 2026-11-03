@@ -338,7 +338,7 @@ private fun orderStatus(row:JSONObject)=when(row.optInt("status")){0->"未支付
                         fun point(i:Int):Offset = Offset(step*(i+.5f),bottom-scale.ratio(values[i])*(bottom-top))
                         val line=Path().apply{
                             val first=point(0);moveTo(first.x,first.y)
-                            // Horizontal tangents at each sample keep the smooth curve within real daily values.
+
                             for(i in 1 until points.size){val previous=point(i-1);val next=point(i);val middle=(previous.x+next.x)/2f;cubicTo(middle,previous.y,middle,next.y,next.x,next.y)}
                         }
                         val area=Path().apply{addPath(line);lineTo(point(points.lastIndex).x,bottom);lineTo(point(0).x,bottom);close()};drawPath(area,Brush.verticalGradient(listOf(color.copy(alpha=.18f),color.copy(alpha=.01f))))

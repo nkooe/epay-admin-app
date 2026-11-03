@@ -8,7 +8,7 @@ import javax.net.ssl.SSLHandshakeException
 import javax.net.ssl.SSLPeerUnverifiedException
 
 internal object PlatformTransport {
-    // Use OkHttp/Android defaults for HTTPS trust, hostname checks and system proxies.
+
     fun client(): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain -> AppIntegrity.requireTrusted(); chain.proceed(chain.request()) }
         .connectTimeout(12, TimeUnit.SECONDS).readTimeout(25, TimeUnit.SECONDS)

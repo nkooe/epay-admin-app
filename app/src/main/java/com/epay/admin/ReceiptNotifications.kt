@@ -13,22 +13,9 @@ import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.work.Constraints
-import androidx.work.CoroutineWorker
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.WorkerParameters
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import java.security.MessageDigest
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 internal object ReceiptNotificationPrefs {
     private const val FILE = "receipt_notifications"
@@ -119,14 +106,8 @@ internal object ReceiptNotificationCenter {
         }
         return builder.build()
     }
-    private fun migrateOldCards(context: Context) {
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager.activeNotifications.filter { it.notification.channelId == "receipt_connection" || it.notification.channelId == CHANNEL && it.tag != null }
-            .forEach { manager.cancel(it.tag,it.id) }
-    }
     @Synchronized fun begin(context: Context): android.app.Notification {
         foreground = true; state = "连接中"
-        migrateOldCards(context)
         return build(context,inbox(context))
     }
     @Synchronized fun status(context: Context, value: String) {
@@ -149,7 +130,7 @@ internal object ReceiptNotificationCenter {
         prefs(context).edit().clear().apply()
         context.getSystemService(NotificationManager::class.java).cancel(ID)
     }
-    @SuppressLint("MissingPermission") // current notification permission is checked by every delivery.
+    @SuppressLint("MissingPermission") // 每次投递前检查通知权限。
     private fun notify(context: Context, notification: android.app.Notification): Boolean = try {
         NotificationManagerCompat.from(context).notify(ID,notification)
         true
@@ -159,10 +140,9 @@ internal object ReceiptNotificationCenter {
         if (!permissionGranted(context)) return false
         if (SessionVault(context).read()?.s("base") != base) return false
         val inbox = inbox(context)
-        // If persisting the cursor failed after a successful post, a retry must not alert twice.
+
         if (!inbox.add(event)) return inbox.contains(event)
         if (!foreground) state = "后台检查"
-        migrateOldCards(context)
         if (!notify(context,build(context,inbox,alert=true))) return false
         save(context,inbox)
         return true
@@ -175,61 +155,10 @@ class ReceiptNotificationActionReceiver : android.content.BroadcastReceiver() {
     }
 }
 
-/** Serialize foreground and WorkManager delivery so the same event cannot alert twice. */
+/** 收款事件按编号投递，游标只在系统接受通知后推进。 */
 internal object ReceiptNotificationDelivery {
-    private val mutex = Mutex()
     @Synchronized fun deliver(context: Context, base: String, event: JSONObject) {
         val id = event.optLong("id")
         if (ReceiptNotificationPrefs.enabled(context) && id > ReceiptNotificationPrefs.cursor(context, base) && ReceiptNotificationCenter.post(context, base, event)) ReceiptNotificationPrefs.advance(context, base, id)
-    }
-    @Synchronized private fun pollBatch(context: Context, base: String, events: List<JSONObject>) {
-        // A stale worker response must not advance past lower IDs still being read by SSE.
-        // While the foreground service owns delivery, its stream handles catch-up in order.
-        if (ReceiptNotificationCenter.foreground) return
-        events.sortedBy { it.optLong("id") }.forEach { deliver(context,base,it) }
-    }
-    suspend fun poll(context: Context, source: Source, base: String) = mutex.withLock {
-        if (ReceiptNotificationCenter.foreground || !ReceiptNotificationPrefs.enabled(context) || !ReceiptNotificationPrefs.hasCursor(context, base) || !ReceiptNotificationCenter.permissionGranted(context)) return@withLock
-        val result = source.call("notifications/poll", obj(
-            "device_id" to ReceiptNotificationPrefs.deviceId(context),
-            "after_id" to ReceiptNotificationPrefs.cursor(context, base).toString()
-        ))
-        currentCoroutineContext().ensureActive()
-        if (!ReceiptNotificationPrefs.enabled(context)) return@withLock
-        pollBatch(context,base,result.rows())
-    }
-}
-
-internal object ReceiptNotificationWork {
-    private const val UNIQUE = "admin-receipt-notification-poll"
-    fun schedule(context: Context) {
-        val request = PeriodicWorkRequestBuilder<ReceiptPollingWorker>(15, TimeUnit.MINUTES)
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .build()
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(UNIQUE, ExistingPeriodicWorkPolicy.UPDATE, request)
-    }
-    fun cancel(context: Context) { WorkManager.getInstance(context).cancelUniqueWork(UNIQUE) }
-}
-
-internal class ReceiptPollingWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result {
-        val context = applicationContext
-        if (AppIntegrity.problem(context) != null) return Result.failure()
-        if (!ReceiptNotificationPrefs.enabled(context)) return Result.success()
-        val vault = SessionVault(context)
-        val session = vault.read() ?: return Result.success()
-        if (!ReceiptNotificationCenter.permissionGranted(context)) return Result.success()
-        return try {
-            val base = platformUrl(session.s("base"))
-            val source = NetworkSource.forStoredSession(base, vault, session)
-            ReceiptNotificationDelivery.poll(context, source, base.toString())
-            Result.success()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: ApiFailure) {
-            if (e.status == 401 || e.status in 400..499) Result.success() else Result.retry()
-        } catch (_: Exception) {
-            Result.retry()
-        }
     }
 }

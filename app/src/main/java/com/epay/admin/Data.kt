@@ -30,7 +30,7 @@ import kotlin.coroutines.resumeWithException
 
 fun obj(vararg pairs: Pair<String, Any?>) = JSONObject().apply { pairs.forEach { put(it.first, it.second ?: JSONObject.NULL) } }
 fun JSONObject.s(key: String, fallback: String = "") = if (isNull(key)) fallback else optString(key, fallback)
-// PHP serializes consecutive numeric option keys as an array, named keys as an object.
+
 internal fun JSONObject.fieldOptions(): JSONObject = when (val options = opt("options")) {
     is JSONObject -> options
     is JSONArray -> JSONObject().apply { for (index in 0 until options.length()) put(index.toString(), options.get(index)) }
@@ -64,7 +64,7 @@ fun csvCell(value: String): String {
     return "\"${safe.replace("\"", "\"\"")}\""
 }
 
-/** Tokens are encrypted with a non-exportable Android Keystore key. Passwords are never stored. */
+
 @android.annotation.SuppressLint("ApplySharedPref") // Persist token rotations and pending request keys before sending a write.
 class SessionVault(context: Context) {
     private val prefs = context.getSharedPreferences("admin_session", Context.MODE_PRIVATE)
@@ -153,7 +153,7 @@ class NetworkSource(val base: HttpUrl, private val vault: SessionVault) : Source
     override suspend fun call(route: String, data: JSONObject, post: Boolean, key: String?): JSONObject {
         val public = route in listOf("site", "auth/captcha", "auth/login", "auth/totp", "auth/refresh")
         val usedToken = if (public) "" else session?.s("access_token") ?: ""
-        // A stable key covers the original attempt and the one retry after a confirmed 401.
+
         val business = post && !route.startsWith("auth/")
         val fingerprint = java.security.MessageDigest.getInstance("SHA-256").digest((route+data.toString()).toByteArray()).joinToString(""){"%02x".format(it)}
         val prior = session?.optJSONObject("pending")

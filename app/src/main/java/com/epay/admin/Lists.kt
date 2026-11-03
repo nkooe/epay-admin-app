@@ -80,14 +80,14 @@ import java.time.format.DateTimeFormatter
                     Column(Modifier.weight(1f)){
                         Column(Modifier.fillMaxWidth().clickable{model.edit("channels","通道基本设置",row.s("id"))}){Text(row.s("name"),fontSize=13.sp);Text("${row.s("type_name")} · #${row.s("id")} · ${row.s("plugin")}",fontSize=11.sp,color=muted(),modifier=Modifier.padding(top=3.dp));Text("结算 ${row.s("rate")}% · ${if(row.optInt("status")==1)"已启用"else"已停用"}",fontSize=11.sp,color=if(row.optInt("status")==1)primary()else muted())}
                         row.optJSONObject("monitor")?.let{state->
-                            Text(state.s("reason"),Modifier.fillMaxWidth().clickable{model.go("plugin","监控诊断与配置",obj("id" to row.s("id")))},fontSize=11.sp,color=if(state.optBoolean("online"))primary()else muted())
+                            Text(state.s("reason"),Modifier.fillMaxWidth().clickable{model.go("plugin","状态配置",obj("id" to row.s("id")))},fontSize=11.sp,color=if(state.optBoolean("online"))primary()else muted())
                             if(state.optLong("last_seen")>0)Text("商户 ${state.s("merchant_id")} · 心跳 ${heartbeatTime(state.optLong("last_seen"))}",fontSize=11.sp,color=muted())
                         }
                     }
                     MoreActions(listOf(
                         UiAction("基本设置",Icons.Outlined.Edit){model.edit("channels","通道基本设置",row.s("id"))},
                         UiAction("密钥配置",Icons.Outlined.Key){model.go("channel","通道密钥配置",obj("id" to row.s("id")))},
-                        UiAction(if(row.optBoolean("monitoring"))"监控诊断与配置"else"授权与插件工具",Icons.Outlined.Settings){model.go("plugin","插件管理",obj("id" to row.s("id")))},
+                        UiAction(if(row.optBoolean("monitoring"))"状态配置"else"授权与插件工具",Icons.Outlined.Settings){model.go("plugin",if(row.optBoolean("monitoring"))"状态配置"else"插件管理",obj("id" to row.s("id")))},
                         UiAction("测试支付",Icons.Outlined.PlayArrow){payment=row},
                         UiAction("订单记录",Icons.Outlined.ReceiptLong){model.go("orders","通道订单记录",obj("channel" to row.s("id"),"channel_name" to row.s("name")))},
                         UiAction(if(row.optInt("status")==1)"停用通道"else"启用通道",Icons.Outlined.PowerSettingsNew){confirm=row}

@@ -36,13 +36,13 @@ import androidx.compose.ui.window.PopupProperties
 
 internal val CompactRowHeight=40.dp
 
-/** Avoid Material's extra 48dp reservation around already clickable dense rows. */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable internal fun CompactControls(content:@Composable ()->Unit) {
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides CompactRowHeight,content=content)
 }
 
-/** Shared dialog spacing for confirmations, filters and native forms. */
+
 @Composable internal fun CompactDialog(
     onDismissRequest:()->Unit,
     title:@Composable ()->Unit,
@@ -65,7 +65,7 @@ internal val CompactRowHeight=40.dp
     }}
 }
 
-/** Dense rows grow with multiline content and system font scaling. */
+
 @Composable internal fun CompactInput(label:String,value:String,change:(String)->Unit,hint:String="",keyboard:KeyboardType=KeyboardType.Text,enabled:Boolean=true,secret:Boolean=false,multi:Boolean=false) {
     var reveal by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
@@ -114,7 +114,7 @@ internal val CompactRowHeight=40.dp
 
 internal data class UiAction(val title:String,val icon:ImageVector=Icons.Outlined.ChevronRight,val destructive:Boolean=false,val run:()->Unit)
 
-/** Anchor to the trigger while keeping long menus inside the visible window. */
+
 private class ActionMenuPosition(private val margin:Int):PopupPositionProvider {
     override fun calculatePosition(anchorBounds:IntRect,windowSize:IntSize,layoutDirection:LayoutDirection,popupContentSize:IntSize):IntOffset {
         val maxX=(windowSize.width-popupContentSize.width-margin).coerceAtLeast(margin)

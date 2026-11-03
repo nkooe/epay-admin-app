@@ -57,7 +57,7 @@ class AdminModel private constructor(application: Application, initialSource: So
     private fun fail(e: Exception) {
         if (e is CancellationException) throw e
         error = e.message ?: "操作失败，请重试"
-        if (e is ApiFailure && e.status == 401 && signedIn) { stopReceiptPolling();ReceiptNotificationWork.cancel(getApplication());(source as? NetworkSource)?.clear(); signedIn = false; challenge = ""; captcha = null }
+        if (e is ApiFailure && e.status == 401 && signedIn) { stopReceiptPolling();(source as? NetworkSource)?.clear(); signedIn = false; challenge = ""; captcha = null }
     }
     fun clearNotice() { notice = null }
     fun clearExport() { exportReady = null }
@@ -100,8 +100,7 @@ class AdminModel private constructor(application: Application, initialSource: So
                     ReceiptNotificationPrefs.initializeCursor(getApplication(),address,cursor?.s("latest_id")?.toLongOrNull()?:0L)
                 }
                 source?.call("notifications/device",obj("device_id" to ReceiptNotificationPrefs.deviceId(getApplication()),"enabled" to 1),true,UUID.randomUUID().toString())
-                // 先初始化游标和订阅，再启动后台任务，避免旧事件与首次轮询竞争而被误报为新收款。
-                ReceiptNotificationWork.schedule(getApplication())
+                // 先初始化游标和订阅，再建立事件连接。
                 startReceiptPolling()
             }
             catch(e:Exception){if(e is CancellationException)throw e}
@@ -127,10 +126,10 @@ class AdminModel private constructor(application: Application, initialSource: So
                     ReceiptNotificationPrefs.initializeCursor(getApplication(),base,cursor.s("latest_id").toLongOrNull()?:0L)
                     source!!.call("notifications/device",obj("device_id" to device,"enabled" to 1),true,UUID.randomUUID().toString())
                     ReceiptNotificationPrefs.setEnabled(getApplication(),true);notificationsEnabled=true
-                    ReceiptNotificationWork.schedule(getApplication());startReceiptPolling();notice="收款通知已开启"
+                    startReceiptPolling();notice="收款通知已开启"
                 } else {
                     ReceiptNotificationPrefs.setEnabled(getApplication(),false);notificationsEnabled=false
-                    stopReceiptPolling();ReceiptNotificationWork.cancel(getApplication())
+                    stopReceiptPolling()
                     source?.call("notifications/device",obj("device_id" to device,"enabled" to 0),true,UUID.randomUUID().toString())
                     notice="收款通知已关闭"
                 }
@@ -282,13 +281,13 @@ class AdminModel private constructor(application: Application, initialSource: So
             busy=true
             try {
                 if(notificationsEnabled)runCatching { source?.call("notifications/device",obj("device_id" to ReceiptNotificationPrefs.deviceId(getApplication()),"enabled" to 0),true,UUID.randomUUID().toString()) }
-                ReceiptNotificationPrefs.setEnabled(getApplication(),false);notificationsEnabled=false;stopReceiptPolling();ReceiptNotificationWork.cancel(getApplication())
+                ReceiptNotificationPrefs.setEnabled(getApplication(),false);notificationsEnabled=false;stopReceiptPolling()
                 source?.call("auth/logout",post=true)
             }catch(e:Exception){ if(e is CancellationException)throw e; notice="本机已退出；网络异常时，可从网页撤销旧会话" }
             finally { clearSession();busy=false }
         }
     }
-    fun clearSession() { cancelPage();stopReceiptPolling();ReceiptNotificationWork.cancel(getApplication());(source as? NetworkSource)?.clear();vault.clear();ReceiptNotificationCenter.reset(getApplication());source=null;signedIn=false;menus=emptyList();groups=emptyList();history.clear();error=null;challenge="";captcha=null;content=obj();exportConfirmation=false;exportReady=null;pendingFingerprint="";pendingKey="" }
+    fun clearSession() { cancelPage();stopReceiptPolling();(source as? NetworkSource)?.clear();vault.clear();ReceiptNotificationCenter.reset(getApplication());source=null;signedIn=false;menus=emptyList();groups=emptyList();history.clear();error=null;challenge="";captcha=null;content=obj();exportConfirmation=false;exportReady=null;pendingFingerprint="";pendingKey="" }
     fun announce(message:String) {notice=message}
     private fun export() {
         if(busy)return
