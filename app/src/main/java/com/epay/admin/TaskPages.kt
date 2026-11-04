@@ -29,8 +29,8 @@ internal fun managementState(value:String):String=mapOf(
     "activating" to "启动中","deactivating" to "停止中",
     "failed" to "失败","success" to "成功","completed" to "已完成","queued" to "已排队",
     "pending" to "等待处理","starting" to "启动中","stopping" to "停止中","draining" to "等待任务结束",
-    "attention" to "需要核查","timed_out" to "心跳超时","interrupted" to "异常中断",
-    "not_installed" to "未安装","invalid_config" to "配置无效","idle" to "空闲",
+    "idle" to "等待下轮","backoff" to "本轮失败，下轮继续","attention" to "等待下轮","timed_out" to "心跳超时","interrupted" to "异常中断",
+    "not_installed" to "未安装","invalid_config" to "配置无效",
     "unknown" to "待核实","sending" to "提交中","verified" to "已核实"
 )[value]?:value.ifBlank{"暂无记录"}
 
@@ -175,14 +175,14 @@ internal fun managementState(value:String):String=mapOf(
     var confirm by remember{mutableStateOf<Pair<String,String>?>(null)}
     Page{Group(Modifier.padding(horizontal=12.dp)){
         Row(verticalAlignment=Alignment.CenterVertically){Text(row.s("name",row.s("service_key")),Modifier.weight(1f),fontSize=13.sp,fontWeight=FontWeight.Medium)
-            MoreActions((if(row.optBoolean("automatic"))listOf("restart" to "重启","refresh" to "核查恢复")else listOf("start" to "启动","stop" to "停止","restart" to "重启","refresh" to "应用配置")).map{(action,title)->UiAction(title,destructive=action=="stop"){confirm=action to title}},!model.busy&&data.optJSONObject("operation")?.s("state") !in setOf("pending","starting"))
+            MoreActions((if(row.optBoolean("automatic"))listOf("refresh" to "重新读取配置")else listOf("start" to "启动","stop" to "停止","restart" to "重启","refresh" to "应用配置")).map{(action,title)->UiAction(title,destructive=action=="stop"){confirm=action to title}},!model.busy&&data.optJSONObject("operation")?.s("state") !in setOf("pending","starting"))
         }
         ManagementLine("进程状态",managementState(unit.s("active_state",row.s("observed"))))
         ManagementLine("当前 PID",unit.s("pid",row.s("pid","0")))
         ManagementLine("期望运行",if(row.optInt("desired")==1)"是"else"否")
-        ManagementLine("最近心跳",row.s("heartbeat_at"));HintLine(row.s("last_error"))
+        ManagementLine("最近处理",row.s("heartbeat_at"));ManagementLine("下次处理",row.s("next_run_at"));HintLine(row.s("last_error"))
         data.optJSONObject("operation")?.let{HintLine("${managementState(it.s("state"))}：${it.s("message")}")}
-        HintLine(if(row.optBoolean("automatic"))"服务随通道启停自动管理，默认每 3 秒处理；进程运行状态不代表上游账号已在线。"else"进程运行状态不代表上游账号已在线；启停不改变支付通道开关。")
+        HintLine(if(row.optBoolean("automatic"))"服务随通道启停自动管理，默认每 3 秒处理；单次失败记录日志，下轮继续。"else"进程运行状态不代表上游账号已在线；启停不改变支付通道开关。")
         SelectionContainer{Text(data.s("text","暂无日志"),fontSize=11.sp,lineHeight=17.sp,fontFamily=FontFamily.Monospace)}
     }}
     confirm?.let{(action,title)->CompactDialog(onDismissRequest={confirm=null},title={Text("$title${row.s("name","插件服务")}？")},text={Text((if(action=="refresh")"应用配置会重新启动该服务。"else"")+"请求由现有服务调度器执行，请以随后显示的 PID、状态及操作记录为准。")},confirmButton={TextButton(onClick={confirm=null;model.save("tasks/plugin",obj("id" to row.s("id"),"revision" to row.optInt("revision"),"action" to action)){model.announce("服务操作已排队");model.load()}},enabled=!model.busy){Text("确认")}},dismissButton={TextButton(onClick={confirm=null}){Text("取消")}})}
