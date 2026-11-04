@@ -59,7 +59,7 @@ internal fun managementState(value:String):String=mapOf(
                 Text("整体服务",Modifier.weight(1f),fontSize=13.sp,fontWeight=FontWeight.Medium)
                 Text(managementState(service.s("active_state")),fontSize=12.sp,color=if(worker.optBoolean("healthy"))primary()else muted())
                 MoreActions(buildList{
-                    if(service.optBoolean("available"))listOf("start" to "启动","stop" to "停止","restart" to "重启","enable" to "开机启动","disable" to "取消开机启动").forEach{(action,title)->
+                    if(service.optBoolean("available")&&!service.optBoolean("managed_externally"))listOf("start" to "启动","stop" to "停止","restart" to "重启","enable" to "开机启动","disable" to "取消开机启动").forEach{(action,title)->
                         add(UiAction(title,destructive=action=="stop"){confirm=title+"整体服务？" to {model.save("tasks/service",obj("action" to action)){model.announce("控制请求已受理，正在核对实际状态");model.load()}}})
                     }
                     add(UiAction("服务日志"){model.go("task-logs","服务日志")})
