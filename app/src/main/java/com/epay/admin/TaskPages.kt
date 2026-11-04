@@ -26,6 +26,7 @@ import org.json.JSONObject
 
 internal fun managementState(value:String):String=mapOf(
     "active" to "运行中","running" to "运行中","inactive" to "已停止","stopped" to "已停止",
+    "activating" to "启动中","deactivating" to "停止中",
     "failed" to "失败","success" to "成功","completed" to "已完成","queued" to "已排队",
     "pending" to "等待处理","starting" to "启动中","stopping" to "停止中","draining" to "等待任务结束",
     "attention" to "需要核查","timed_out" to "心跳超时","interrupted" to "异常中断",
@@ -59,17 +60,20 @@ internal fun managementState(value:String):String=mapOf(
                 Text("整体服务",Modifier.weight(1f),fontSize=13.sp,fontWeight=FontWeight.Medium)
                 Text(managementState(service.s("active_state")),fontSize=12.sp,color=if(worker.optBoolean("healthy"))primary()else muted())
                 MoreActions(buildList{
-                    if(service.optBoolean("available"))listOf("start" to "启动","stop" to "停止","restart" to "重启","enable" to "开机启动","disable" to "取消开机启动").forEach{(action,title)->
-                        add(UiAction(title,destructive=action=="stop"){confirm=title+"整体服务？" to {model.save("tasks/service",obj("action" to action)){model.announce("控制请求已受理，正在核对实际状态");model.load()}}})
-                    }
                     add(UiAction("服务日志"){model.go("task-logs","服务日志")})
                     add(UiAction("同步插件任务"){model.save("tasks/sync",obj()){result->syncReport=result;model.announce("已读取同步结果");model.load()}})
                     add(UiAction("新增通道任务"){model.go("task-edit","新增通道任务")})
                 },!model.busy)
             }
+            ManagementLine("托管方式","进程管理器")
             ManagementLine("当前 PID",service.s("pid","0"))
             ManagementLine("调度心跳",managementState(worker.s("display_state",worker.s("state"))))
             HintLine(worker.s("reason"));HintLine(service.s("message"))
+            service.optJSONObject("health")?.let{health->
+                HintLine(health.s("message"))
+                health.rows("faults").forEach{fault->HintLine(fault.s("message")+"："+fault.s("action"))}
+            }
+            HintLine("整体启停、自启在进程管理器中设置；插件与任务配置仍在这里管理。")
             HintLine("支付通道启用后自动接管，默认每 3 秒处理；投诉接口启用后默认每天 03:00 同步，无需另外创建任务。")
         }}
         syncReport?.let{report->item{Group{
