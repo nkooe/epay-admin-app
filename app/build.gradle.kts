@@ -13,7 +13,7 @@ val signingProperties = Properties().apply {
 android {
     namespace = "com.epay.admin"
     compileSdk = 35
-    defaultConfig { applicationId = "com.epay.admin"; minSdk = 26; targetSdk = 35; versionCode = 36; versionName = "1.2.32"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; buildConfigField("String", "RELEASE_CERTIFICATE_SHA256", "\"$releaseCertificateSha256\"") }
+    defaultConfig { applicationId = "com.epay.admin"; minSdk = 26; targetSdk = 35; versionCode = 37; versionName = "1.2.33"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; buildConfigField("String", "RELEASE_CERTIFICATE_SHA256", "\"$releaseCertificateSha256\"") }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
