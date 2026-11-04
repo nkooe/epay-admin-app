@@ -8,17 +8,17 @@ val releaseCertificateSha256 = Properties().apply {
     require(it.matches(Regex("[0-9a-f]{64}"))) { "正式签名证书指纹格式无效" }
 }
 val signingProperties = Properties().apply {
-    rootProject.file("signing/signing.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    rootProject.file("../signing/signing.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
 android {
     namespace = "com.epay.admin"
     compileSdk = 35
-    defaultConfig { applicationId = "com.epay.admin"; minSdk = 26; targetSdk = 35; versionCode = 37; versionName = "1.2.33"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; buildConfigField("String", "RELEASE_CERTIFICATE_SHA256", "\"$releaseCertificateSha256\"") }
+    defaultConfig { applicationId = "com.epay.admin"; minSdk = 26; targetSdk = 35; versionCode = 38; versionName = "1.2.34"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"; buildConfigField("String", "RELEASE_CERTIFICATE_SHA256", "\"$releaseCertificateSha256\"") }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     signingConfigs { if(signingProperties.isNotEmpty()) create("localRelease") {
-        storeFile = rootProject.file("signing/"+signingProperties.getProperty("storeFile"))
+        storeFile = rootProject.file("../signing/"+signingProperties.getProperty("storeFile"))
         storePassword = signingProperties.getProperty("storePassword")
         keyAlias = signingProperties.getProperty("keyAlias")
         keyPassword = signingProperties.getProperty("keyPassword")
@@ -35,7 +35,7 @@ android {
 val verifyReleaseSigning by tasks.registering {
     doLast {
         check(signingProperties.isNotEmpty()) { "请先配置本机 signing/signing.properties 正式签名" }
-        val file = rootProject.file("signing/" + signingProperties.getProperty("storeFile"))
+        val file = rootProject.file("../signing/" + signingProperties.getProperty("storeFile"))
         val store = KeyStore.getInstance(file, signingProperties.getProperty("storePassword").toCharArray())
         val certificate = store.getCertificate(signingProperties.getProperty("keyAlias"))
         check(certificate != null) { "正式签名证书缺失" }
