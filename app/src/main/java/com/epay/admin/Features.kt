@@ -89,7 +89,7 @@ import java.io.ByteArrayOutputStream
                 model.current.args.s("group")=="site"->when{
                     key in listOf("sitename","title","keywords","description","orgname")->"基本配置"
                     key in listOf("email","kfqq","qqqun")->"联系方式"
-                    key.startsWith("reg_")||key in listOf("user_review","user_settings_edit","verifytype")->"注册与商户"
+                    key.startsWith("reg_")||key.startsWith("merchant_")||key in listOf("user_review","user_settings_edit","verifytype")->"注册与商户"
                     key.startsWith("captcha_")||key.startsWith("test_")||key=="close_keylogin"->"验证与测试"
                     else->"页面与链接"
                 }
@@ -128,7 +128,10 @@ import java.io.ByteArrayOutputStream
                 if(shown.isNotEmpty())Group(Modifier.padding(horizontal=16.dp)){
                     if(sections.size>1)Row(Modifier.fillMaxWidth().clickable{expanded=if(expanded==index)-1 else index}.heightIn(min=CompactRowHeight).padding(vertical=5.dp),verticalAlignment=Alignment.CenterVertically){Text(title,Modifier.weight(1f),fontSize=13.sp);Text("${section.size} 项",fontSize=11.sp,color=muted());Icon(if(expanded==index)Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,null,Modifier.padding(start=7.dp).size(17.dp))}
                     if(sections.size==1||expanded==index||search.isNotBlank())shown.forEach{field->
-                        FieldEditor(field,values[field.s("key")]?:"",!model.busy){values[field.s("key")]=it}
+                        val dependency=field.optJSONObject("enabled_when")
+                        val fieldEnabled=dependency==null || values[dependency.s("key")]==dependency.s("value")
+                        FieldEditor(field,values[field.s("key")]?:"",!model.busy&&fieldEnabled){values[field.s("key")]=it}
+                        if(!fieldEnabled)HintLine("平台尚未开启此功能，请稍后重试。")
                     }
                 }
             }
@@ -156,7 +159,7 @@ import java.io.ByteArrayOutputStream
     if(confirm.isNotEmpty()){
         val summary=(if(operation)schema.s("note")+"\n\n"else "")+(if(bulk)"共 ${model.current.args.optJSONArray("targets")?.length()?:0} 条记录，逐条执行。\n"+model.current.args.getJSONArray("targets").let{a->(0 until a.length()).joinToString("\n"){a.getString(it)}}+"\n"else "")+if(confirm=="delete")"删除后无法恢复。" else if(operation)specs.filter{!it.optBoolean("secret")}.joinToString("\n"){f->val value=values[f.s("key")]?:"";"${f.s("label")}：${f.fieldOptions().s(value,value)}"}else"保存后立即生效。"
         ConfirmDialog(if(confirm=="delete")"删除记录？"else if(operation)schema.s("name")else"保存修改？",summary,model.busy,{confirm=""},model.error){
-            val data=obj("values" to obj().apply{specs.filter{fieldVisible(it,values)}.forEach{f->val key=f.s("key");put(key,if(f.s("type")=="checkbox")runCatching{JSONArray(values[key])}.getOrDefault(JSONArray())else values[key]?:"")}})
+            val data=obj("values" to obj().apply{specs.filter{fieldVisible(it,values)&&it.optJSONObject("enabled_when").let{dependency->dependency==null||values[dependency.s("key")]==dependency.s("value")}}.forEach{f->val key=f.s("key");put(key,if(f.s("type")=="checkbox")runCatching{JSONArray(values[key])}.getOrDefault(JSONArray())else values[key]?:"")}})
             val endpoint=when {
                 operation->{data.put("action",model.current.args.s("action"));"actions/run"}
                 management->{data.put("resource",schema.s("resource")).put("id",schema.s("id")).put("revision",schema.s("revision"));if(confirm=="delete")"management/delete"else"management/save"}
